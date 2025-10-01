@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MI PRIMER FIREBASE">
+    <meta name="keywords" content="HTML,CSS,JavaScript">
+    <meta name="author" content="Jhamil Vargas Arcienega">
+    <link rel="stylesheet" href="estilos.css">
+    <title>Formulario de registro de usuarios</title>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="form-switcher">
+                <button class="switch-btn active" id="registroBtn">Registro</button>
+                <button class="switch-btn" id="loginBtn">Iniciar Sesión</button>
+            </div>
+            
+            <!-- Formulario de Registro -->
+            <div class="form-container" id="registroContainer">
+                <h1>Formulario de registro</h1>
+                <form class="form" id="registroForm">
+                    <div class="form-group">
+                        <input type="text" name="name" id="name" placeholder="Ingresa tu nombre" required>
+                        <label for="name">Nombre</label>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" id="email" placeholder="tucorreo@ejemplo.com" required>
+                        <label for="email">Correo</label>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="password" id="password" placeholder="Crea una contraseña" required>
+                        <label for="password">Contraseña</label>
+                    </div>
+                    <button type="submit" class="btn">Registrar</button>
+                </form>
+            </div>
+
+            <!-- Formulario de Inicio de Sesión -->
+            <div class="form-container hidden" id="loginContainer">
+                <h1>Iniciar Sesión</h1>
+                <form class="form" id="loginForm">
+                    <div class="form-group">
+                        <input type="email" name="loginEmail" id="loginEmail" placeholder="tucorreo@ejemplo.com" required>
+                        <label for="loginEmail">Correo</label>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="loginPassword" id="loginPassword" placeholder="Ingresa tu contraseña" required>
+                        <label for="loginPassword">Contraseña</label>
+                    </div>
+                    <button type="submit" class="btn">Iniciar Sesión</button>
+                </form>
+            </div>
+
+            <!-- Botón para acceder al panel de juegos -->
+            <div class="panel-access">
+                <a href="PANEL/paneljuegos.html" class="btn panel-btn">🎮 Ir al Panel de Juegos</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+      // ✅ Importar servicios de Firebase (SIN espacios al final)
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+      // ✅ Tu configuración de Firebase (CORRECTA) — SIN CAMBIOS
+      const firebaseConfig = {
+        apiKey: "AIzaSyDh32MZ-3SN-HI-Yvc-TYwz6ZTSyO4eSa4",
+        authDomain: "base-de-datos-67958.firebaseapp.com",
+        projectId: "base-de-datos-67958",
+        storageBucket: "base-de-datos-67958.appspot.com",
+        messagingSenderId: "776970018825",
+        appId: "1:776970018825:web:tu-app-id"  // Puedes reemplazarlo después en Firebase
+      };
+
+      // Inicializar Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Referencias a los elementos del DOM
+      const registroForm = document.getElementById('registroForm');
+      const loginForm = document.getElementById('loginForm');
+      const registroBtn = document.getElementById('registroBtn');
+      const loginBtn = document.getElementById('loginBtn');
+      const registroContainer = document.getElementById('registroContainer');
+      const loginContainer = document.getElementById('loginContainer');
+
+      // Función para cambiar entre formularios
+      function switchForm(showRegistro) {
+        if (showRegistro) {
+          registroContainer.classList.remove('hidden');
+          loginContainer.classList.add('hidden');
+          registroBtn.classList.add('active');
+          loginBtn.classList.remove('active');
+        } else {
+          registroContainer.classList.add('hidden');
+          loginContainer.classList.remove('hidden');
+          registroBtn.classList.remove('active');
+          loginBtn.classList.add('active');
+        }
+      }
+
+      // Eventos para los botones de cambio
+      registroBtn.addEventListener('click', () => switchForm(true));
+      loginBtn.addEventListener('click', () => switchForm(false));
+
+      // Evento al enviar el formulario de registro
+      registroForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = registroForm.name.value;
+        const email = registroForm.email.value;
+        const password = registroForm.password.value;
+
+        try {
+          // 1. Crear usuario en Authentication
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          // 2. Guardar datos en Firestore (en la colección "USUARIOS")
+          await addDoc(collection(db, "USUARIOS"), {
+            nombre: name,
+            correo: email,
+            uid: user.uid,
+            fechaRegistro: new Date()
+          });
+
+          alert("✅ Registro exitoso. Bienvenido, " + name);
+          registroForm.reset();
+
+          // Redirigir al panel de juegos después del registro exitoso
+          window.location.href = "PANEL/paneljuegos.html";
+
+        } catch (error) {
+          // Manejo de errores específicos
+          if (error.code === 'auth/email-already-in-use') {
+            alert("❌ El correo ya está registrado.");
+          } else if (error.code === 'auth/invalid-email') {
+            alert("❌ Formato de correo inválido.");
+          } else if (error.code === 'auth/weak-password') {
+            alert("❌ La contraseña debe tener al menos 6 caracteres.");
+          } else {
+            alert("❌ Error: " + error.message);
+          }
+        }
+      });
+
+      // Evento al enviar el formulario de inicio de sesión
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const email = loginForm.loginEmail.value;
+        const password = loginForm.loginPassword.value;
+
+        try {
+          // Iniciar sesión con Firebase Auth
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          alert("✅ Inicio de sesión exitoso. Bienvenido de nuevo!");
+          loginForm.reset();
+
+          // Redirigir al panel de juegos después del inicio de sesión exitoso
+          window.location.href = "PANEL/paneljuegos.html";
+
+        } catch (error) {
+          // Manejo de errores específicos
+          if (error.code === 'auth/user-not-found') {
+            alert("❌ No existe una cuenta con este correo.");
+          } else if (error.code === 'auth/wrong-password') {
+            alert("❌ Contraseña incorrecta.");
+          } else if (error.code === 'auth/invalid-email') {
+            alert("❌ Formato de correo inválido.");
+          } else if (error.code === 'auth/too-many-requests') {
+            alert("❌ Demasiados intentos fallidos. Intenta más tarde.");
+          } else {
+            alert("❌ Error: " + error.message);
+          }
+        }
+      });
+    </script>
+</body>
+</html>
